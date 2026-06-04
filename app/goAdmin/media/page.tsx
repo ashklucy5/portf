@@ -254,23 +254,34 @@ export default function MediaLibrary() {
 
   // ── SAVE MEDIA METADATA TO SUPABASE ───────────────────────────────────
   const saveMediaToSupabase = async (updates: Record<string, any>) => {
-    const rowsToUpsert = Object.entries(updates).map(([key_path, value]) => ({
+  const rowsToUpsert = Object.entries(updates).flatMap(([key_path, value]) => [
+    // ✅ English locale
+    {
       locale: 'en',
       section: activeSection,
       key_path,
       value: typeof value === 'object' ? JSON.stringify(value) : String(value),
       updated_at: new Date().toISOString()
-    }));
+    },
+    // ✅ Chinese locale (duplicate)
+    {
+      locale: 'zh',
+      section: activeSection,
+      key_path,
+      value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+      updated_at: new Date().toISOString()
+    }
+  ]);
 
-    const { error } = await supabase
-      .from('content')
-      .upsert(rowsToUpsert, {
-        onConflict: 'locale,section,key_path'
-      });
+  const { error } = await supabase
+    .from('content')
+    .upsert(rowsToUpsert, {
+      onConflict: 'locale,section,key_path'
+    });
 
-    if (error) throw error;
-    return { success: true };
-  };
+  if (error) throw error;
+  return { success: true };
+};
 
   // ── HERO SECTION HANDLERS ─────────────────────────────────────────────
   const handleHeroSelect = (file: File) => {
