@@ -179,6 +179,7 @@ export default function AdminServices() {
         { locale: 'zh', section: 'services', key_path: 'subtitle', value: subtitleZh },
         // Items JSON (stored as single JSON object)
         { locale: 'en', section: 'services', key_path: 'items', value: JSON.stringify(items) },
+        { locale: 'zh', section: 'services', key_path: 'items', value: JSON.stringify(items) }
       ];
       
       const { error } = await supabase
