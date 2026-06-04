@@ -153,7 +153,7 @@ export default function Services({ data, locale = 'zh' }: {
             transition={{ delay: 0.1 }}
             className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3"
           >
-            {getText(services.title, services.titleZh)}
+            {locale === 'zh' ? (services.titleZh || services.title) : services.title}
           </motion.h2>
           
           <motion.p 
@@ -163,7 +163,7 @@ export default function Services({ data, locale = 'zh' }: {
             transition={{ delay: 0.2 }}
             className="text-xs sm:text-sm text-gray-600 max-w-xl mx-auto"
           >
-            {getText(services.subtitle, services.subtitleZh)}
+            {locale === 'zh' ? (services.subtitleZh || services.subtitle) : services.subtitle}
           </motion.p>
         </div>
 
@@ -172,8 +172,13 @@ export default function Services({ data, locale = 'zh' }: {
           {serviceKeys.map((key, i) => {
             const IconComponent = icons[key];
             const item = items[key];
-            const title = getText(item?.title || '', item?.titleZh || '');
-            const desc = getText(item?.desc || '', item?.descZh || '');
+            const title = locale === 'zh' 
+              ? (item?.titleZh || item?.title || '') 
+              : (item?.title || '');
+              
+            const desc = locale === 'zh'
+              ? (item?.descZh || item?.desc || '')
+              : (item?.desc || '');
             
             return (
               <Link key={key} href={`/services?service=${key}`} className="block">

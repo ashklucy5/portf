@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 export interface BlogPostData {
   id: string;
-  serviceKey: string; // 'content' | 'china' | etc.
+  serviceKey: string;
   title: string;
   titleZh: string;
   content: string;
@@ -27,57 +27,63 @@ export default function BlogPost({ post, locale = 'zh', onBack }: BlogPostProps)
   const getText = (en: string, zh: string) => locale === 'zh' && zh ? zh : en;
   
   return (
-    <article className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      {/* Back Button */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <button
-            onClick={onBack || (() => window.history.back())}
-            className="flex items-center gap-2 text-gray-600 hover:text-violet-600 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Services</span>
-          </button>
-        </div>
+    <article className="min-h-screen bg-linear-to-b from-white to-gray-50">
+      {/* Back Button - Floating in top-left corner */}
+      <div className="fixed top-4 left-4 z-50">
+        <button
+          onClick={onBack || (() => window.history.back())}
+          className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-md border border-gray-200 rounded-full shadow-lg text-gray-700 hover:text-violet-600 hover:bg-white transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">
+            {locale === 'zh' ? '返回服务' : 'Back'}
+          </span>
+        </button>
       </div>
 
-      {/* Hero Image */}
-      <div className="relative h-64 sm:h-80 lg:h-96 bg-gray-100">
-        <Image
-          src={post.imageUrl || 'https://placehold.co/1200x600/9333ea/ffffff?text=Service+Image'}
-          alt={getText(post.title, post.titleZh)}
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
+      {/* Hero Image - Full image visible */}
+      <div className="relative w-full">
+        {/* Image container with proper height */}
+        <div className="relative w-full h-[50vh] lg:h-[60vh] min-h-[400px] max-h-[700px] bg-gray-100">
+          <Image
+            src={post.imageUrl || 'https://placehold.co/1200x800/9333ea/ffffff?text=Service+Image'}
+            alt={getText(post.title, post.titleZh)}
+            fill
+            // ✅ Shows full image without cropping
+            className="object-contain"
+            sizes="100vw"
+            priority
+          />
+        </div>
         
-        {/* Title Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight">
-            {getText(post.title, post.titleZh)}
-          </h1>
-          
-          {/* Meta Info */}
-          <div className="flex items-center gap-4 mt-3 text-white/80 text-sm">
-            {post.publishedDate && (
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                {post.publishedDate}
-              </span>
-            )}
-            {post.readTime && (
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                {post.readTime} read
-              </span>
-            )}
+        {/* Title Overlay - Bottom of image */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 lg:p-12 bg-linear-to-t from-black/80 via-black/50 to-transparent">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+              {getText(post.title, post.titleZh)}
+            </h1>
+            
+            {/* Meta Info */}
+            <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm sm:text-base">
+              {post.publishedDate && (
+                <span className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" /> 
+                  {post.publishedDate}
+                </span>
+              )}
+              {post.readTime && (
+                <span className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" /> 
+                  {post.readTime} read
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -85,7 +91,7 @@ export default function BlogPost({ post, locale = 'zh', onBack }: BlogPostProps)
           className="prose prose-lg max-w-none"
         >
           <div 
-            className="text-gray-700 leading-relaxed whitespace-pre-wrap"
+            className="text-gray-700 leading-relaxed text-base sm:text-lg whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ 
               __html: getText(post.content, post.contentZh).replace(/\n/g, '<br/>') 
             }}
@@ -93,20 +99,18 @@ export default function BlogPost({ post, locale = 'zh', onBack }: BlogPostProps)
         </motion.div>
 
         {/* CTA Section */}
-        <div className="mt-12 p-6 bg-violet-50 rounded-2xl border border-violet-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">
-            {locale === 'zh' ? '准备开始了吗？' : 'Ready to get started?'}
+        <div className="mt-12 sm:mt-16 p-6 sm:p-8 bg-gradient-to-br from-violet-50 to-fuchsia-50 rounded-2xl sm:rounded-3xl border border-violet-100 shadow-sm">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">
+            {getText('Ready to get started?', '准备开始了吗？')}
           </h3>
-          <p className="text-gray-600 mb-4">
-            {locale === 'zh' 
-              ? '联系我们，了解更多关于这项服务的信息。' 
-              : 'Contact us to learn more about this service.'}
+          <p className="text-gray-600 mb-6 text-sm sm:text-base">
+            {getText('Contact us to learn more about this service.', '联系我们，了解更多关于这项服务的信息。')}
           </p>
           <Link 
             href="/#contact"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white font-medium rounded-xl hover:bg-violet-700 transition"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 transition shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30"
           >
-            {locale === 'zh' ? '联系我们' : 'Get in Touch'}
+            {getText('Get in Touch', '联系我们')}
           </Link>
         </div>
       </div>

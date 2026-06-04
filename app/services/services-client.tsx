@@ -10,17 +10,22 @@ import Link from 'next/link';
 export default function ServicesClient() {
   const searchParams = useSearchParams();
   const serviceKey = searchParams.get('service');
-  const [locale, setLocale] = useState<'en' | 'zh'>('en');
+  const [locale, setLocale] = useState<'en' | 'zh'>('zh'); // ✅ Default to Chinese
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Detect locale
+  // Detect locale from URL
   useEffect(() => {
     const urlLang = searchParams.get('lang') as 'en' | 'zh';
-    if (urlLang === 'en' || urlLang === 'zh') setLocale(urlLang);
+    if (urlLang === 'en' || urlLang === 'zh') {
+      setLocale(urlLang);
+    } else {
+      // ✅ Default to Chinese if no lang parameter
+      setLocale('zh');
+    }
   }, [searchParams]);
 
-  // Fetch blog/service data client-side
+  // Fetch blog/service data
   useEffect(() => {
     if (!serviceKey) {
       setLoading(false);
@@ -29,7 +34,10 @@ export default function ServicesClient() {
 
     const fetchServiceData = async () => {
       try {
-        const {  data: blogData } = await supabase
+        console.log('Fetching blog for:', { serviceKey, locale });
+        
+        // ✅ Query the exact key_path format from your database
+        const { data: blogData, error } = await supabase
           .from('content')
           .select('value')
           .eq('locale', locale)
@@ -37,15 +45,33 @@ export default function ServicesClient() {
           .eq('key_path', `items.${serviceKey}.blog`)
           .maybeSingle();
 
+        if (error) {
+          console.error('Supabase error:', error);
+        }
+
+        console.log('Raw blog data:', blogData);
+
         if (blogData?.value) {
-          const parsed = JSON.parse(blogData.value);
-          setPost({ ...parsed, serviceKey });
+          // Parse the JSON value
+          const parsed = typeof blogData.value === 'string' 
+            ? JSON.parse(blogData.value) 
+            : blogData.value;
+          
+          console.log('Parsed blog:', parsed);
+          
+          setPost({ 
+            ...parsed, 
+            serviceKey,
+          });
         } else {
-          // Fallback if no blog content exists yet
+          console.log('No blog data found, using fallback');
+          // Fallback if no blog content exists
           setPost({
-            title: 'Service Details',
+            title: locale === 'zh' ? '服务详情' : 'Service Details',
             titleZh: '服务详情',
-            content: 'Detailed content for this service will be added soon.',
+            content: locale === 'zh' 
+              ? '该服务的详细内容即将添加。' 
+              : 'Detailed content for this service will be added soon.',
             contentZh: '该服务的详细内容即将添加。',
             imageUrl: '',
             serviceKey,
@@ -54,9 +80,11 @@ export default function ServicesClient() {
       } catch (error) {
         console.error('Failed to fetch service data:', error);
         setPost({
-          title: 'Service Details',
+          title: locale === 'zh' ? '服务详情' : 'Service Details',
           titleZh: '服务详情',
-          content: 'Content coming soon...',
+          content: locale === 'zh' 
+            ? '内容即将推出...' 
+            : 'Content coming soon...',
           contentZh: '内容即将推出...',
           imageUrl: '',
           serviceKey,
@@ -69,16 +97,24 @@ export default function ServicesClient() {
     fetchServiceData();
   }, [serviceKey, locale]);
 
-  const getText = (en: string, zh: string) => locale === 'zh' && zh ? zh : en;
+  const getText = (en: string, zh: string) => {
+    // ✅ For Chinese locale, prefer zh text, but fallback to en if zh is empty
+    if (locale === 'zh') {
+      return zh?.trim() || en?.trim() || '';
+    }
+    return en?.trim() || '';
+  };
 
   // No service selected
   if (!serviceKey) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">No service selected</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {locale === 'zh' ? '未选择服务' : 'No service selected'}
+          </h2>
           <Link href="/#services" className="text-violet-600 hover:underline">
-            ← Back to Services
+            ← {locale === 'zh' ? '返回服务' : 'Back to Services'}
           </Link>
         </div>
       </div>
@@ -88,13 +124,15 @@ export default function ServicesClient() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading post...</div>
+        <div className="text-gray-500">
+          {locale === 'zh' ? '加载中...' : 'Loading post...'}
+        </div>
       </div>
     );
   }
 
   return (
-    <article className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <article className="min-h-screen bg-linear-to-b from-white to-gray-50">
       {/* Back Button */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -103,7 +141,9 @@ export default function ServicesClient() {
             className="flex items-center gap-2 text-gray-600 hover:text-violet-600 transition"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Services</span>
+            <span className="text-sm font-medium">
+              {locale === 'zh' ? '返回服务' : 'Back to Services'}
+            </span>
           </Link>
         </div>
       </div>
