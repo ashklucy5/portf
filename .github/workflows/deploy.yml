@@ -1,0 +1,51 @@
+name: Build and Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Create .env.local
+        run: |
+          cat > .env.local << EOF
+          NEXT_PUBLIC_SITE_URL=https://gosarwar.com
+          NEXT_PUBLIC_UPLOAD_API_URL=https://gosarwar.com/uploads/upload.php
+          NEXT_PUBLIC_IMAGE_BASE_URL=https://gosarwar.com/uploads
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+          EOF
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to cPanel via SSH
+        run: |
+          rsync -avz --delete \
+            --exclude='.htaccess' \
+            --exclude='uploads/' \
+            out/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:public_html/
