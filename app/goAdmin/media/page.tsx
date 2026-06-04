@@ -139,145 +139,190 @@ export default function MediaLibrary() {
   const [loading, setLoading] = useState(true);
 
   // ── FETCH MEDIA FROM SUPABASE ─────────────────────────────────────────
-  const fetchMediaFromSupabase = useCallback(async () => {
-    try {
-      const sections = ['hero', 'about', 'team', 'collaborations', 'carousel-images', 'carousel-videos'];
+  // ── FETCH MEDIA FROM SUPABASE ─────────────────────────────────────────
+const fetchMediaFromSupabase = useCallback(async () => {
+  try {
+    const sections = ['hero', 'about', 'team', 'collaborations', 'carousel-images', 'carousel-videos'];
+    
+    // Fetch all data in one query
+    const { data: allData, error } = await supabase
+      .from('content')
+      .select('locale, section, key_path, value')
+      .in('section', sections);
+
+    if (error) throw error;
+
+    // Group data by section and locale
+    const grouped: Record<string, Record<string, Record<string, any>>> = {};
+    for (const row of (allData || [])) {
+      if (!grouped[row.section]) grouped[row.section] = { en: {}, zh: {} };
+      if (!grouped[row.section][row.locale]) grouped[row.section][row.locale] = {};
       
-      const responses = await Promise.all(
-        sections.map(section => 
-          supabase
-            .from('content')
-            .select('key_path, value')
-            .eq('locale', 'en')
-            .eq('section', section)
-        )
-      );
-
-      const transformResponse = (response: any) => {
-        const rows = response.data || [];
-        const result: Record<string, any> = {};
-        
-        for (const row of rows) {
-          const keys = row.key_path.split('.');
-          let target = result;
-          for (let i = 0; i < keys.length - 1; i++) {
-            target[keys[i]] = target[keys[i]] || {};
-            target = target[keys[i]];
-          }
-          target[keys[keys.length - 1]] = row.value;
-        }
-        return result;
-      };
-
-      const [heroData, aboutData, teamData, collabData, carouselImgData, carouselVidData] = 
-        responses.map(transformResponse);
-
-      // Populate sections
-      if (heroData.heroImage) {
-        setHero({
-          ...emptyImageSlot('hero'),
-          ossUrl: heroData.heroImage,
-          preview: heroData.heroImage,
-          title: heroData.tagline || '',
-          titleZh: heroData.taglineZh || '',
-          status: 'uploaded'
-        });
+      const keys = row.key_path.split('.');
+      let target = grouped[row.section][row.locale];
+      for (let i = 0; i < keys.length - 1; i++) {
+        target[keys[i]] = target[keys[i]] || {};
+        target = target[keys[i]];
       }
-      if (aboutData.aboutImage) {
-        setAbout({
-          ...emptyImageSlot('about'),
-          ossUrl: aboutData.aboutImage,
-          preview: aboutData.aboutImage,
-          title: aboutData.title || '',
-          titleZh: aboutData.titleZh || '',
-          status: 'uploaded'
-        });
+      
+      // Parse JSON strings if the column is text
+      let parsedValue = row.value;
+      if (typeof parsedValue === 'string' && (parsedValue.startsWith('{') || parsedValue.startsWith('['))) {
+        try { parsedValue = JSON.parse(parsedValue); } catch (e) {}
       }
-      if (teamData.members) {
-        setTeam(Object.entries(teamData.members).map(([role, name]: [string, any], index) => ({
-          ...emptyTeamMember(index + 1),
-          name: typeof name === 'string' ? name : '',
-          nameZh: teamData[`members.${role}Zh`] || '',
-          ossUrl: teamData[`memberImage.${role}`] || null,
-          preview: teamData[`memberImage.${role}`] || null,
-          status: teamData[`memberImage.${role}`] ? 'uploaded' : 'empty'
-        })));
-      }
-      if (collabData.items) {
-        setCollaborations(Object.entries(collabData.items).map(([key, item]: [string, any], index) => ({
-          ...emptyCollaborationSlot(index + 1),
-          ossUrl: typeof item === 'string' ? item : (item.imageUrl || null),
-          preview: typeof item === 'string' ? item : (item.imageUrl || null),
-          title: typeof item === 'object' ? item.title : '',
-          titleZh: typeof item === 'object' ? item.titleZh : '',
-          description: typeof item === 'object' ? item.description : '',
-          descriptionZh: typeof item === 'object' ? item.descriptionZh : '',
-          location: typeof item === 'object' ? item.location : '',
-          locationZh: typeof item === 'object' ? item.locationZh : '',
-          status: (typeof item === 'string' ? item : item?.imageUrl) ? 'uploaded' : 'empty'
-        })));
-      }
-      if (carouselImgData.items) {
-        setCarouselImages(Object.entries(carouselImgData.items).map(([key, item]: [string, any], index) => ({
-          ...emptyImageSlot('carousel-img', index + 1),
-          ossUrl: typeof item === 'string' ? item : (item.url || null),
-          preview: typeof item === 'string' ? item : (item.url || null),
-          title: typeof item === 'object' ? item.title : '',
-          titleZh: typeof item === 'object' ? item.titleZh : '',
-          status: (typeof item === 'string' ? item : item?.url) ? 'uploaded' : 'empty'
-        })));
-      }
-      if (carouselVidData.items) {
-        setCarouselVideos(Object.entries(carouselVidData.items).map(([key, item]: [string, any], index) => ({
-          ...emptyVideoSlot(index + 1),
-          thumbnailOssUrl: item?.thumbnailUrl || null,
-          thumbnailPreview: item?.thumbnailUrl || null,
-          thumbnailStatus: item?.thumbnailUrl ? 'uploaded' : 'empty',
-          videoUrl: item?.videoUrl || '',
-          title: item?.title || '',
-          titleZh: item?.titleZh || '',
-          desc: item?.desc || '',
-          descZh: item?.descZh || ''
-        })));
-      }
-
-    } catch (error) {
-      console.error('Failed to fetch media from Supabase:', error);
-    } finally {
-      setLoading(false);
+      target[keys[keys.length - 1]] = parsedValue;
     }
-  }, []);
+
+    // Extract data for each section
+    const heroEn = grouped.hero?.en || {};
+    const heroZh = grouped.hero?.zh || {};
+    const aboutEn = grouped.about?.en || {};
+    const aboutZh = grouped.about?.zh || {};
+    const teamEn = grouped.team?.en || {};
+    const teamZh = grouped.team?.zh || {};
+    const collabEn = grouped.collaborations?.en || {};
+    const collabZh = grouped.collaborations?.zh || {};
+    const carouselImgEn = grouped['carousel-images']?.en || {};
+    const carouselImgZh = grouped['carousel-images']?.zh || {};
+    const carouselVidEn = grouped['carousel-videos']?.en || {};
+    const carouselVidZh = grouped['carousel-videos']?.zh || {};
+
+    // Populate Hero
+    if (heroEn.heroImage) {
+      setHero({
+        ...emptyImageSlot('hero'),
+        ossUrl: heroEn.heroImage,
+        preview: heroEn.heroImage,
+        title: heroEn.tagline || '',
+        titleZh: heroZh.tagline || '', // ✅ Get ZH from zh data
+        status: 'uploaded'
+      });
+    }
+
+    // Populate About
+    if (aboutEn.aboutImage) {
+      setAbout({
+        ...emptyImageSlot('about'),
+        ossUrl: aboutEn.aboutImage,
+        preview: aboutEn.aboutImage,
+        title: aboutEn.title || '',
+        titleZh: aboutZh.title || '',
+        status: 'uploaded'
+      });
+    }
+
+    // Populate Team
+    if (teamEn.members || teamZh.members) {
+      const roles = ['CEO', 'CTO', 'Designer', 'DevLead'];
+      setTeam(roles.map((role, index) => ({
+        ...emptyTeamMember(index + 1),
+        name: teamEn.members?.[role] || '',
+        nameZh: teamZh.members?.[role] || '', // ✅ Get ZH from zh data
+        ossUrl: teamEn.memberImage?.[role] || null,
+        preview: teamEn.memberImage?.[role] || null,
+        status: teamEn.memberImage?.[role] ? 'uploaded' : 'empty'
+      })));
+    }
+
+    // Populate Collaborations
+    if (collabEn.items || collabZh.items) {
+      setCollaborations(Array.from({ length: 4 }, (_, i) => {
+        const key = String(i + 1);
+        const enItem = collabEn.items?.[key] || {};
+        const zhItem = collabZh.items?.[key] || {};
+        const imageUrl = enItem.imageUrl || zhItem.imageUrl || null;
+        
+        return {
+          ...emptyCollaborationSlot(i + 1),
+          ossUrl: imageUrl,
+          preview: imageUrl,
+          title: enItem.title || '',
+          titleZh: zhItem.title || '', // ✅ Get ZH from zh data
+          description: enItem.description || '',
+          descriptionZh: zhItem.description || '',
+          location: enItem.location || '',
+          locationZh: zhItem.location || '',
+          status: imageUrl ? 'uploaded' : 'empty'
+        };
+      }));
+    }
+
+    // Populate Carousel Images
+    if (carouselImgEn.items || carouselImgZh.items) {
+      setCarouselImages(Array.from({ length: 6 }, (_, i) => {
+        const key = String(i + 1);
+        const enItem = carouselImgEn.items?.[key] || {};
+        const zhItem = carouselImgZh.items?.[key] || {};
+        const url = enItem.url || zhItem.url || null;
+        
+        return {
+          ...emptyImageSlot('carousel-img', i + 1),
+          ossUrl: url,
+          preview: url,
+          title: enItem.title || '',
+          titleZh: zhItem.title || '', // ✅ Get ZH from zh data
+          status: url ? 'uploaded' : 'empty'
+        };
+      }));
+    }
+
+    // Populate Carousel Videos
+    if (carouselVidEn.items || carouselVidZh.items) {
+      setCarouselVideos(Array.from({ length: 9 }, (_, i) => {
+        const key = String(i + 1);
+        const enItem = carouselVidEn.items?.[key] || {};
+        const zhItem = carouselVidZh.items?.[key] || {};
+        
+        return {
+          ...emptyVideoSlot(i + 1),
+          thumbnailOssUrl: enItem.thumbnailUrl || null,
+          thumbnailPreview: enItem.thumbnailUrl || null,
+          thumbnailStatus: enItem.thumbnailUrl ? 'uploaded' : 'empty',
+          videoUrl: enItem.videoUrl || '',
+          title: enItem.title || '',
+          titleZh: zhItem.title || '', // ✅ Get ZH from zh data
+          desc: enItem.desc || '',
+          descZh: zhItem.desc || ''
+        };
+      }));
+    }
+
+  } catch (error) {
+    console.error('Failed to fetch media:', error);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     fetchMediaFromSupabase();
   }, [fetchMediaFromSupabase]);
 
   // ── SAVE MEDIA METADATA TO SUPABASE ───────────────────────────────────
-  const saveMediaToSupabase = async (updates: Record<string, any>) => {
-  const rowsToUpsert = Object.entries(updates).flatMap(([key_path, value]) => [
-    // ✅ English locale
-    {
+  // ── SAVE MEDIA METADATA TO SUPABASE ───────────────────────────────────
+const saveMediaToSupabase = async (enUpdates: Record<string, any>, zhUpdates: Record<string, any>) => {
+  const rowsToUpsert = [
+    // ✅ English locale gets English data
+    ...Object.entries(enUpdates).map(([key_path, value]) => ({
       locale: 'en',
       section: activeSection,
       key_path,
       value: typeof value === 'object' ? JSON.stringify(value) : String(value),
       updated_at: new Date().toISOString()
-    },
-    // ✅ Chinese locale (duplicate)
-    {
+    })),
+    // ✅ Chinese locale gets Chinese data
+    ...Object.entries(zhUpdates).map(([key_path, value]) => ({
       locale: 'zh',
       section: activeSection,
       key_path,
       value: typeof value === 'object' ? JSON.stringify(value) : String(value),
       updated_at: new Date().toISOString()
-    }
-  ]);
+    }))
+  ];
 
   const { error } = await supabase
     .from('content')
-    .upsert(rowsToUpsert, {
-      onConflict: 'locale,section,key_path'
-    });
+    .upsert(rowsToUpsert, { onConflict: 'locale,section,key_path' });
 
   if (error) throw error;
   return { success: true };
@@ -328,12 +373,10 @@ export default function MediaLibrary() {
 };
 
   const clearHero = () => {
-    if (hero.preview && hero.preview !== hero.ossUrl) {
-      URL.revokeObjectURL(hero.preview);
-    }
-    setHero({ ...emptyImageSlot('hero') });
-    saveMediaToSupabase({ heroImage: '', tagline: '', taglineZh: '' });
-  };
+  if (hero.preview && hero.preview !== hero.ossUrl) URL.revokeObjectURL(hero.preview);
+  setHero({ ...emptyImageSlot('hero') });
+  saveMediaToSupabase({ heroImage: '', tagline: '' }, { heroImage: '', tagline: '' });
+};
 
   // ── ABOUT SECTION HANDLERS ────────────────────────────────────────────
   const handleAboutSelect = (file: File) => {
@@ -380,12 +423,10 @@ export default function MediaLibrary() {
 };
 
   const clearAbout = () => {
-    if (about.preview && about.preview !== about.ossUrl) {
-      URL.revokeObjectURL(about.preview);
-    }
-    setAbout({ ...emptyImageSlot('about') });
-    saveMediaToSupabase({ aboutImage: '', title: '', titleZh: '' });
-  };
+  if (about.preview && about.preview !== about.ossUrl) URL.revokeObjectURL(about.preview);
+  setAbout({ ...emptyImageSlot('about') });
+  saveMediaToSupabase({ aboutImage: '', title: '' }, { aboutImage: '', title: '' });
+};
 
   // ── TEAM SECTION HANDLERS ─────────────────────────────────────────────
   const handleTeamImageSelect = (index: number, file: File) => {
@@ -407,57 +448,54 @@ export default function MediaLibrary() {
   };
 
   const uploadTeamImageToOSS = async (index: number) => {
-    const member = team[index];
-    if (!member.file) return;
+  const member = team[index];
+  if (!member.file) return;
+  
+  setTeam(prev => {
+    const next = [...prev];
+    next[index] = { ...next[index], status: 'uploading' };
+    return next;
+  });
+
+  try {
+    const role = ['CEO', 'CTO', 'Designer', 'DevLead'][index] || `member${index + 1}`;
+    const ossUrl = await uploadToCPanel(member.file!, 'team');
     
     setTeam(prev => {
       const next = [...prev];
-      next[index] = { ...next[index], status: 'uploading' };
+      next[index] = { ...next[index], ossUrl, preview: ossUrl, status: 'uploaded' };
       return next;
     });
-
-    try {
-      const role = ['CEO', 'CTO', 'Designer', 'DevLead'][index] || `member${index + 1}`;
-      const ossUrl = await uploadToCPanel(member.file!, 'team');
-      
-      setTeam(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], ossUrl, preview: ossUrl, status: 'uploaded' };
-        return next;
-      });
-      
-      await saveMediaToSupabase({ 
-        [`members.${role}`]: member.name,
-        [`members.${role}Zh`]: member.nameZh,
-        [`memberImage.${role}`]: ossUrl 
-      });
-    } catch (error) {
-      console.error('Team upload failed:', error);
-      setTeam(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], status: 'pending' };
-        return next;
-      });
-      throw error;
-    }
-  };
-
-  const clearTeamMember = (index: number) => {
+    
+    // ✅ Save English data to 'en' and Chinese data to 'zh'
+    await saveMediaToSupabase(
+      { [`members.${role}`]: member.name, [`memberImage.${role}`]: ossUrl },
+      { [`members.${role}`]: member.nameZh, [`memberImage.${role}`]: ossUrl }
+    );
+  } catch (error) {
+    console.error('Team upload failed:', error);
     setTeam(prev => {
       const next = [...prev];
-      if (next[index].preview && next[index].preview !== next[index].ossUrl) {
-        URL.revokeObjectURL(next[index].preview!);
-      }
-      next[index] = emptyTeamMember(index + 1);
+      next[index] = { ...next[index], status: 'pending' };
       return next;
     });
-    const role = ['CEO', 'CTO', 'Designer', 'DevLead'][index] || `member${index + 1}`;
-    saveMediaToSupabase({ 
-      [`members.${role}`]: '', 
-      [`members.${role}Zh`]: '', 
-      [`memberImage.${role}`]: '' 
-    });
-  };
+    throw error;
+  }
+};
+
+  const clearTeamMember = (index: number) => {
+  setTeam(prev => {
+    const next = [...prev];
+    if (next[index].preview && next[index].preview !== next[index].ossUrl) URL.revokeObjectURL(next[index].preview!);
+    next[index] = emptyTeamMember(index + 1);
+    return next;
+  });
+  const role = ['CEO', 'CTO', 'Designer', 'DevLead'][index] || `member${index + 1}`;
+  saveMediaToSupabase(
+    { [`members.${role}`]: '', [`memberImage.${role}`]: '' },
+    { [`members.${role}`]: '', [`memberImage.${role}`]: '' }
+  );
+};
 
   // ── COLLABORATIONS SECTION HANDLERS ───────────────────────────────────
   const handleCollaborationSelect = (index: number, file: File) => {
@@ -479,57 +517,56 @@ export default function MediaLibrary() {
   };
 
   const uploadCollaborationToOSS = async (index: number) => {
-    const item = collaborations[index];
-    if (!item.file) return;
+  const item = collaborations[index];
+  if (!item.file) return;
+  
+  setCollaborations(prev => {
+    const next = [...prev];
+    next[index] = { ...next[index], status: 'uploading' };
+    return next;
+  });
+
+  try {
+    const ossUrl = await uploadToCPanel(item.file!, 'collaborations');
     
     setCollaborations(prev => {
       const next = [...prev];
-      next[index] = { ...next[index], status: 'uploading' };
+      next[index] = { ...next[index], ossUrl, preview: ossUrl, status: 'uploaded' };
       return next;
     });
-
-    try {
-      const ossUrl = await uploadToCPanel(item.file!, 'collaborations');
-      
-      setCollaborations(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], ossUrl, preview: ossUrl, status: 'uploaded' };
-        return next;
-      });
-      
-      await saveMediaToSupabase({ 
+    
+    await saveMediaToSupabase(
+      { 
         [`items.${index + 1}`]: {
-          imageUrl: ossUrl,
-          title: item.title,
-          titleZh: item.titleZh,
-          description: item.description,
-          descriptionZh: item.descriptionZh,
-          location: item.location,
-          locationZh: item.locationZh
+          imageUrl: ossUrl, title: item.title, description: item.description, location: item.location
         }
-      });
-    } catch (error) {
-      console.error('Collaboration upload failed:', error);
-      setCollaborations(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], status: 'pending' };
-        return next;
-      });
-      throw error;
-    }
-  };
-
-  const clearCollaboration = (index: number) => {
+      },
+      { 
+        [`items.${index + 1}`]: {
+          imageUrl: ossUrl, title: item.titleZh, description: item.descriptionZh, location: item.locationZh
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Collaboration upload failed:', error);
     setCollaborations(prev => {
       const next = [...prev];
-      if (next[index].preview && next[index].preview !== next[index].ossUrl) {
-        URL.revokeObjectURL(next[index].preview!);
-      }
-      next[index] = emptyCollaborationSlot(index + 1);
+      next[index] = { ...next[index], status: 'pending' };
       return next;
     });
-    saveMediaToSupabase({ [`items.${index + 1}`]: '' });
-  };
+    throw error;
+  }
+};
+
+  const clearCollaboration = (index: number) => {
+  setCollaborations(prev => {
+    const next = [...prev];
+    if (next[index].preview && next[index].preview !== next[index].ossUrl) URL.revokeObjectURL(next[index].preview!);
+    next[index] = emptyCollaborationSlot(index + 1);
+    return next;
+  });
+  saveMediaToSupabase({ [`items.${index + 1}`]: '' }, { [`items.${index + 1}`]: '' });
+};
 
   // ── CAROUSEL IMAGE HANDLERS ───────────────────────────────────────────
   const handleCarouselImageSelect = (index: number, file: File) => {
@@ -551,53 +588,49 @@ export default function MediaLibrary() {
   };
 
   const uploadCarouselImageToOSS = async (index: number) => {
-    const item = carouselImages[index];
-    if (!item.file) return;
+  const item = carouselImages[index];
+  if (!item.file) return;
+  
+  setCarouselImages(prev => {
+    const next = [...prev];
+    next[index] = { ...next[index], status: 'uploading' };
+    return next;
+  });
+
+  try {
+    const ossUrl = await uploadToCPanel(item.file!, 'carousel');
     
     setCarouselImages(prev => {
       const next = [...prev];
-      next[index] = { ...next[index], status: 'uploading' };
+      next[index] = { ...next[index], ossUrl, preview: ossUrl, status: 'uploaded' };
       return next;
     });
-
-    try {
-      const ossUrl = await uploadToCPanel(item.file!, 'carousel');
-      
-      setCarouselImages(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], ossUrl, preview: ossUrl, status: 'uploaded' };
-        return next;
-      });
-      
-      await saveMediaToSupabase({ 
-        [`items.${index + 1}`]: { 
-          url: ossUrl, 
-          title: item.title,
-          titleZh: item.titleZh
-        } 
-      });
-    } catch (error) {
-      console.error('Carousel image upload failed:', error);
-      setCarouselImages(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], status: 'pending' };
-        return next;
-      });
-      throw error;
-    }
-  };
-
-  const clearCarouselImage = (index: number) => {
+    
+    await saveMediaToSupabase(
+      { [`items.${index + 1}`]: { url: ossUrl, title: item.title } },
+      { [`items.${index + 1}`]: { url: ossUrl, title: item.titleZh } }
+    );
+  } catch (error) {
+    console.error('Carousel image upload failed:', error);
     setCarouselImages(prev => {
       const next = [...prev];
-      if (next[index].preview && next[index].preview !== next[index].ossUrl) {
-        URL.revokeObjectURL(next[index].preview!);
-      }
-      next[index] = emptyImageSlot('carousel-img', index + 1);
+      next[index] = { ...next[index], status: 'pending' };
       return next;
     });
-    saveMediaToSupabase({ [`items.${index + 1}`]: '' });
-  };
+    throw error;
+  }
+};
+
+  const clearCarouselImage = (index: number) => {
+  setCarouselImages(prev => {
+    const next = [...prev];
+    if (next[index].preview && next[index].preview !== next[index].ossUrl) URL.revokeObjectURL(next[index].preview!);
+    next[index] = emptyImageSlot('carousel-img', index + 1);
+    return next;
+  });
+  saveMediaToSupabase({ [`items.${index + 1}`]: '' }, { [`items.${index + 1}`]: '' });
+};
+
 
   // ── CAROUSEL VIDEO HANDLERS ───────────────────────────────────────────
   const handleThumbnailSelect = (index: number, file: File) => {
@@ -619,50 +652,46 @@ export default function MediaLibrary() {
   };
 
   const uploadThumbnailToOSS = async (index: number) => {
-    const slot = carouselVideos[index];
-    if (!slot.thumbnailFile) return;
+  const slot = carouselVideos[index];
+  if (!slot.thumbnailFile) return;
+  
+  setCarouselVideos(prev => {
+    const next = [...prev];
+    next[index] = { ...next[index], thumbnailStatus: 'uploading' };
+    return next;
+  });
+
+  try {
+    const ossUrl = await uploadToCPanel(slot.thumbnailFile!, 'carousel');
     
     setCarouselVideos(prev => {
       const next = [...prev];
-      next[index] = { ...next[index], thumbnailStatus: 'uploading' };
+      next[index] = { ...next[index], thumbnailOssUrl: ossUrl, thumbnailPreview: ossUrl, thumbnailStatus: 'uploaded' };
       return next;
     });
-
-    try {
-      const ossUrl = await uploadToCPanel(slot.thumbnailFile!, 'carousel');
-      
-      setCarouselVideos(prev => {
-        const next = [...prev];
-        next[index] = { 
-          ...next[index], 
-          thumbnailOssUrl: ossUrl, 
-          thumbnailPreview: ossUrl, 
-          thumbnailStatus: 'uploaded' 
-        };
-        return next;
-      });
-      
-      await saveMediaToSupabase({ 
+    
+    await saveMediaToSupabase(
+      { 
         [`items.${index + 1}`]: {
-          thumbnailUrl: ossUrl,
-          videoUrl: slot.videoUrl,
-          title: slot.title,
-          titleZh: slot.titleZh,
-          desc: slot.desc,
-          descZh: slot.descZh
+          thumbnailUrl: ossUrl, videoUrl: slot.videoUrl, title: slot.title, desc: slot.desc
         }
-      });
-    } catch (error) {
-      console.error('Thumbnail upload failed:', error);
-      setCarouselVideos(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], thumbnailStatus: 'pending' };
-        return next;
-      });
-      throw error;
-    }
-  };
-
+      },
+      { 
+        [`items.${index + 1}`]: {
+          thumbnailUrl: ossUrl, videoUrl: slot.videoUrl, title: slot.titleZh, desc: slot.descZh
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Thumbnail upload failed:', error);
+    setCarouselVideos(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], thumbnailStatus: 'pending' };
+      return next;
+    });
+    throw error;
+  }
+};
   const clearThumbnail = (index: number) => {
     setCarouselVideos(prev => {
       const next = [...prev];
@@ -681,23 +710,33 @@ export default function MediaLibrary() {
   };
 
   const updateVideoField = (index: number, field: 'videoUrl' | 'title' | 'titleZh' | 'desc' | 'descZh', value: string) => {
-    setCarouselVideos(prev => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
-    const slot = carouselVideos[index];
-    saveMediaToSupabase({ 
+  setCarouselVideos(prev => {
+    const next = [...prev];
+    next[index] = { ...next[index], [field]: value };
+    return next;
+  });
+  
+  const updatedSlot = { ...carouselVideos[index], [field]: value };
+
+  saveMediaToSupabase(
+    { 
       [`items.${index + 1}`]: {
-        thumbnailUrl: slot.thumbnailOssUrl,
-        videoUrl: slot.videoUrl,
-        title: slot.title,
-        titleZh: slot.titleZh,
-        desc: slot.desc,
-        descZh: slot.descZh
+        thumbnailUrl: updatedSlot.thumbnailOssUrl,
+        videoUrl: updatedSlot.videoUrl,
+        title: updatedSlot.title,
+        desc: updatedSlot.desc
       }
-    });
-  };
+    },
+    { 
+      [`items.${index + 1}`]: {
+        thumbnailUrl: updatedSlot.thumbnailOssUrl,
+        videoUrl: updatedSlot.videoUrl,
+        title: updatedSlot.titleZh,
+        desc: updatedSlot.descZh
+      }
+    }
+  );
+};
 
   // ── GLOBAL SAVE ───────────────────────────────────────────────────────
   const handleSaveAll = async () => {

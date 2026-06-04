@@ -115,22 +115,29 @@ export default function AdminServices() {
         setSubtitleZh(stZh);
         
         // Fetch items JSON (stored as single JSON object per locale)
-        const { data: itemsData } = await supabase
-          .from('content')
-          .select('value')
-          .eq('locale', 'en')
-          .eq('section', 'services')
-          .eq('key_path', 'items')
-          .maybeSingle();
-        
-        if (itemsData?.value) {
-          try {
-            const parsed = JSON.parse(itemsData.value);
-            setItems(parsed);
-          } catch {
-            // Use empty items if parsing fails
-          }
-        }
+        // ✅ Fetch both en and zh items
+const [{ data: enItemsData }, { data: zhItemsData }] = await Promise.all([
+  supabase.from('content').select('value')
+    .eq('locale', 'en').eq('section', 'services').eq('key_path', 'items').maybeSingle(),
+  supabase.from('content').select('value')
+    .eq('locale', 'zh').eq('section', 'services').eq('key_path', 'items').maybeSingle(),
+]);
+
+if (enItemsData?.value) {
+  try {
+    const enParsed = JSON.parse(enItemsData.value);
+    const zhParsed = zhItemsData?.value ? JSON.parse(zhItemsData.value) : {};
+    
+    // ✅ Merge en and zh into one items object
+    const merged = Object.fromEntries(SERVICE_KEYS.map(k => [k, {
+      ...enParsed[k],
+      titleZh: zhParsed[k]?.title || '',
+      descZh: zhParsed[k]?.desc || '',
+    }]));
+    
+    setItems(merged as ServicesItems);
+  } catch {}
+}
       } catch (error) {
         console.error('Failed to fetch services data:', error);
       } finally {
@@ -178,8 +185,20 @@ export default function AdminServices() {
         { locale: 'en', section: 'services', key_path: 'subtitle', value: subtitle },
         { locale: 'zh', section: 'services', key_path: 'subtitle', value: subtitleZh },
         // Items JSON (stored as single JSON object)
-        { locale: 'en', section: 'services', key_path: 'items', value: JSON.stringify(items) },
-        { locale: 'zh', section: 'services', key_path: 'items', value: JSON.stringify(items) }
+        { locale: 'en', section: 'services', key_path: 'items', value: JSON.stringify(
+  Object.fromEntries(SERVICE_KEYS.map(k => [k, {
+    title: items[k]?.title || '',
+    desc: items[k]?.desc || '',
+    imageUrl: items[k]?.imageUrl || '',
+  }]))
+)},
+{ locale: 'zh', section: 'services', key_path: 'items', value: JSON.stringify(
+  Object.fromEntries(SERVICE_KEYS.map(k => [k, {
+    title: items[k]?.titleZh || '',
+    desc: items[k]?.descZh || '',
+    imageUrl: items[k]?.imageUrl || '',
+  }]))
+)},
       ];
       
       const { error } = await supabase
