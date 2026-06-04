@@ -1,0 +1,16 @@
+name = "gosarwar-api"
+main = "workers/content-api.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gosarwar-content"
+database_id = "98f566ef-7e94-4523-a160-e7dc8e1b4358"
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "test1"
+
+[vars]
+R2_PUBLIC_URL = "https://pub-cea976465d874925ae7c600b260729bd.r2.dev"
+ADMIN_TOKEN = "64a8f4551449eeabee4756674975375dca96b169c371e4e3a94d1f67406f511b"

@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #7C3AED;
+  --color-accent: #FDE047;
+  --color-dark: #0F172A;
+  --color-light: #F8FAFC;
+  
+  --radius-4xl: 2rem;
+  
+  --animate-scroll-left: scrollLeft 40s linear infinite;
+  --animate-scroll-left-fast: scrollLeft 30s linear infinite;
+}
+
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans), var(--font-sc), system-ui, sans-serif;
+  background-color: var(--color-light);
+  color: var(--color-dark);
+  -webkit-font-smoothing: antialiased;
+}
+/* ===== Animated Gradient for Logo ===== */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* ===== Floating Animation for Mobile Menu ===== */
+@keyframes slide-in-from-top-2 {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in.slide-in-from-top-2 {
+  animation: slide-in-from-top-2 0.2s ease-out forwards;
+}

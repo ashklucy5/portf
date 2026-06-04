@@ -1,0 +1,72 @@
+// app/api/admin/content/route.ts
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+const messagesDir = path.join(process.cwd(), 'messages');
+const enPath = path.join(messagesDir, 'en.json');
+const zhPath = path.join(messagesDir, 'zh.json');
+
+// ✅ Deep merge: nested objects are merged, not replaced
+function deepMerge(target: any, source: any): any {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] !== null &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key])
+    ) {
+      result[key] = deepMerge(target[key] ?? {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+function readJson(filePath: string) {
+  return fs.existsSync(filePath)
+    ? JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+    : {};
+}
+
+// ✅ GET: Load current JSON content so the editor always shows real saved data
+export async function GET() {
+  try {
+    const en = readJson(enPath);
+    const zh = readJson(zhPath);
+    return NextResponse.json({ en, zh });
+  } catch (error) {
+    console.error('Read error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to read content' },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ POST: Deep merge incoming content with existing JSON
+export async function POST(request: Request) {
+  try {
+    const { en, zh } = await request.json();
+
+    if (!fs.existsSync(messagesDir)) {
+      fs.mkdirSync(messagesDir, { recursive: true });
+    }
+
+    // Deep merge — nested fields are preserved, not overwritten
+    const mergedEn = deepMerge(readJson(enPath), en);
+    const mergedZh = deepMerge(readJson(zhPath), zh);
+
+    fs.writeFileSync(enPath, JSON.stringify(mergedEn, null, 2));
+    fs.writeFileSync(zhPath, JSON.stringify(mergedZh, null, 2));
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Save error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to save content' },
+      { status: 500 }
+    );
+  }
+}
