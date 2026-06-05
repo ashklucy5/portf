@@ -463,9 +463,6 @@ export default function Home() {
         videoUrl: item?.videoUrl || '#',
       }))
     : []
-  console.log('🔍 1. RAW SUPABASE CAROUSEL DATA:', data['carousel-images'], data['carousel-videos']);
-  console.log('🔍 2. TRANSFORMED SHOWCASE IMAGES:', showcaseImages);
-  console.log('🔍 3. TRANSFORMED CASE STUDIES:', caseStudies);
   return (
     <>
       {/* ✅ Pass locale for language switching */}

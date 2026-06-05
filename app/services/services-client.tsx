@@ -34,7 +34,7 @@ export default function ServicesClient() {
 
     const fetchServiceData = async () => {
       try {
-        console.log('Fetching blog for:', { serviceKey, locale });
+        // console.log('Fetching blog for:', { serviceKey, locale });
         
         // ✅ Query the exact key_path format from your database
         const { data: blogData, error } = await supabase
@@ -49,7 +49,7 @@ export default function ServicesClient() {
           console.error('Supabase error:', error);
         }
 
-        console.log('Raw blog data:', blogData);
+        // console.log('Raw blog data:', blogData);
 
         if (blogData?.value) {
           // Parse the JSON value
@@ -57,14 +57,14 @@ export default function ServicesClient() {
             ? JSON.parse(blogData.value) 
             : blogData.value;
           
-          console.log('Parsed blog:', parsed);
+          // console.log('Parsed blog:', parsed);
           
           setPost({ 
             ...parsed, 
             serviceKey,
           });
         } else {
-          console.log('No blog data found, using fallback');
+          // console.log('No blog data found, using fallback');
           // Fallback if no blog content exists
           setPost({
             title: locale === 'zh' ? '服务详情' : 'Service Details',

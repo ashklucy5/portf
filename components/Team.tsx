@@ -203,30 +203,7 @@ for (const row of rows) {
   setPhotos(result);
   
   // 🔍 DEBUG — remove after fixing
-  console.log('📦 RAW ROWS FROM SUPABASE:');
-  rows.forEach(r => console.log(`  [${r.locale}] ${r.key_path} =`, r.value));
-  
-  console.log('\n🗺️ ITEM MAP AFTER PROCESSING:');
-  Object.entries(itemMap).forEach(([key, item]) => {
-    console.log(`  Item ${key}:`, {
-      imageUrl:      item.imageUrl?.slice(0, 40) + '...',
-      title:         item.title,
-      titleZh:       item.titleZh,
-      description:   item.description,
-      descriptionZh: item.descriptionZh,
-      location:      item.location,
-      locationZh:    item.locationZh,
-    });
-  });
-
-  console.log('\n🌐 CURRENT LOCALE:', locale);
-  console.log('✅ FINAL PHOTOS ARRAY:', result.map(p => ({
-    _id: p._id,
-    title: p.title,
-    titleZh: p.titleZh,
-    location: p.location,
-    locationZh: p.locationZh,
-  })));
+  if (result.length > 0) setPhotos(result);
 }
       } catch (err) {
         console.error('Failed to fetch team data:', err);
