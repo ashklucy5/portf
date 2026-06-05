@@ -29,58 +29,55 @@ export default function BlogPost({ post, locale = 'zh', onBack }: BlogPostProps)
   return (
     <article className="min-h-screen bg-linear-to-b from-white to-gray-50">
       {/* Back Button - Floating in top-left corner */}
-      <div className="fixed top-4 left-4 z-50">
-        <button
-          onClick={onBack || (() => window.history.back())}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-md border border-gray-200 rounded-full shadow-lg text-gray-700 hover:text-violet-600 hover:bg-white transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {locale === 'zh' ? '返回服务' : 'Back'}
-          </span>
-        </button>
-      </div>
+      <div className="w-full h-[5vh] min-h-[50px] flex items-center px-4 bg-white border-b border-gray-100">
+      <button
+        onClick={onBack || (() => window.history.back())}
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm text-gray-700 hover:text-violet-600 transition"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="text-sm font-medium">
+          {locale === 'zh' ? '返回服务' : 'Back'}
+        </span>
+      </button>
+    </div>
 
-      {/* Hero Image - Full image visible */}
-      <div className="relative w-full">
-        {/* Image container with proper height */}
-        <div className="relative w-full h-[50vh] lg:h-[60vh] min-h-[400px] max-h-[700px] bg-gray-100">
-          <Image
-            src={post.imageUrl || 'https://placehold.co/1200x800/9333ea/ffffff?text=Service+Image'}
-            alt={getText(post.title, post.titleZh)}
-            fill
-            // ✅ Shows full image without cropping
-            className="object-contain"
-            sizes="100vw"
-            priority
-          />
-        </div>
-        
-        {/* Title Overlay - Bottom of image */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 lg:p-12 bg-linear-to-t from-black/80 via-black/50 to-transparent">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
-              {getText(post.title, post.titleZh)}
-            </h1>
-            
-            {/* Meta Info */}
-            <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm sm:text-base">
-              {post.publishedDate && (
-                <span className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" /> 
-                  {post.publishedDate}
-                </span>
-              )}
-              {post.readTime && (
-                <span className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> 
-                  {post.readTime} read
-                </span>
-              )}
-            </div>
+    {/* MARGIN */}
+    {/* <div className="h-[5vh]" /> */}
+
+    {/* IMAGE — 60vh on desktop, 40vh on mobile */}
+    <div className="relative w-full bg-gray-900" style={{ height: '1080px' }}>
+  <Image
+    src={post.imageUrl || 'https://placehold.co/1200x800/9333ea/ffffff?text=Service+Image'}
+    alt={getText(post.title, post.titleZh)}
+    fill
+    className="object-contain object-center"
+    sizes="100vw"
+    priority
+  />
+      {/* Title Overlay */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 lg:p-12 bg-linear-to-t from-black/80 via-black/50 to-transparent">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
+            {getText(post.title, post.titleZh)}
+          </h1>
+          <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm sm:text-base">
+            {post.publishedDate && (
+              <span className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                {post.publishedDate}
+              </span>
+            )}
+            {post.readTime && (
+              <span className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {post.readTime} read
+              </span>
+            )}
           </div>
         </div>
       </div>
+    </div>
+
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">

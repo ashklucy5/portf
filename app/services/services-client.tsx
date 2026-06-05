@@ -149,14 +149,15 @@ export default function ServicesClient() {
       </div>
 
       {/* Hero Image */}
-      <div className="relative h-64 sm:h-80 lg:h-96 bg-gray-100">
-        <Image
-          src={post.imageUrl || `https://placehold.co/1200x600/9333ea/ffffff?text=${encodeURIComponent(getText(post.title, post.titleZh))}`}
-          alt={getText(post.title, post.titleZh)}
-          fill
-          className="object-cover"
-          priority
-        />
+      {/* Hero Image */}
+<div className="relative w-full bg-gray-900" style={{ height: '600px' }}>
+  <Image
+    src={post.imageUrl || `https://placehold.co/1200x600/9333ea/ffffff?text=${encodeURIComponent(getText(post.title, post.titleZh))}`}
+    alt={getText(post.title, post.titleZh)}
+    fill
+    className="object-contain object-center"
+    priority
+  />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">

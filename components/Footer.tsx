@@ -91,7 +91,7 @@ export default function Footer({ data, locale = 'zh' }: { data?: FooterData | st
             <div className="bg-white/10 p-3 rounded-xl flex flex-col items-center">
               <div className="relative" style={{ width: '100px', height: '100px' }}>
                 <Image 
-                  src="https://gosarwar.com/icons/QQqr.jpg" 
+                  src="https://gosarwar.com/icons/QQqr.png" 
                   alt="QQ QR" 
                   fill
                   className="rounded-lg object-contain"

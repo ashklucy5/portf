@@ -511,22 +511,24 @@ export default function Hero({
 
         {/* ── ROW 4 · Trust marquee ── */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="mt-6 sm:mt-10 mb-6 sm:mb-8 text-center"
-        >
-          <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-5 font-medium tracking-wide">{hero.trust?.text || FALLBACK_HERO.trust.text}</p>
-          <div className="relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-20 lg:w-24 bg-linear-to-r from-purple-50/80 to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-20 lg:w-24 bg-linear-to-l from-purple-50/80 to-transparent z-10 pointer-events-none" />
-            <motion.div
-              className="flex gap-5 sm:gap-8 lg:gap-10 w-max"
-              animate={{ x: ['0%', '-50%'] }}
-              transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
-            >
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.7 }}
+  className="mt-6 sm:mt-10 pb-10 sm:pb-16 text-center"
+>
+  <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-5 font-medium tracking-wide">
+    {hero.trust?.text || FALLBACK_HERO.trust.text}
+  </p>
+  <div className="relative w-full overflow-hidden py-2">
+    <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-20 lg:w-24 bg-linear-to-r from-violet-50 to-transparent z-10 pointer-events-none" />
+    <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-20 lg:w-24 bg-linear-to-l from-violet-50 to-transparent z-10 pointer-events-none" />
+    <motion.div
+      className="flex gap-5 sm:gap-8 lg:gap-10 whitespace-nowrap w-max"
+      animate={{ x: [0, '-50%'] }}
+      transition={{ duration: 20, repeat: Infinity, ease: 'linear', repeatType: 'loop' }}
+    >
               {[...Array(2)].map((_, rep) =>
-                ['Logoipsum', 'Logoipsum', 'Logoipsum', 'logoipsum', 'Logoipsum'].map((l, i) => (
+                ['Google', 'Meta', 'Amazon', 'Microsoft', 'Alibaba', 'Tencent', 'ByteDance'].map((l, i) => (
                   <motion.span
                     key={`${rep}-${i}`}
                     className="text-xs sm:text-sm lg:text-base font-extrabold tracking-widest text-gray-400/70 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-md bg-gray-200/40 whitespace-nowrap select-none"
